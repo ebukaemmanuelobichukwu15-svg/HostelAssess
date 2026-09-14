@@ -2,7 +2,7 @@
 
 HostelAssess is a vanilla HTML/CSS/JavaScript application backed by Node.js, Express, MongoDB, and Mongoose. Students can assess their assigned hostel once per academic session and submit complaints. Administrators can review institution-wide feedback and complaint activity.
 
-## Requirements
+## Requirements (Must Have)
 
 - Node.js 20 or newer
 - MongoDB locally or a MongoDB Atlas connection
