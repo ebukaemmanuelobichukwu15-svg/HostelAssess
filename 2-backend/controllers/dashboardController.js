@@ -6,6 +6,37 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
 const { applyHostelScope, managedHostelIds } = require('../utils/adminScope');
 
+const getPublicDashboard = asyncHandler(async (_req, res) => {
+  const [summary] = await Assessment.aggregate([
+    { $match: { academicSession: env.CURRENT_ACADEMIC_SESSION } },
+    {
+      $group: {
+        _id: null,
+        assessmentCount: { $sum: 1 },
+        overall: { $avg: '$overallRating' },
+        water: { $avg: '$water' },
+        electricity: { $avg: '$electricity' },
+        security: { $avg: '$security' }
+      }
+    }
+  ]);
+  const rating = (value) => value == null ? null : Number(value.toFixed(1));
+
+  return sendSuccess(res, {
+    message: 'Public assessment summary retrieved.',
+    data: {
+      academicSession: env.CURRENT_ACADEMIC_SESSION,
+      assessmentCount: summary?.assessmentCount || 0,
+      ratings: {
+        overall: rating(summary?.overall),
+        water: rating(summary?.water),
+        electricity: rating(summary?.electricity),
+        security: rating(summary?.security)
+      }
+    }
+  });
+});
+
 const getStudentDashboard = asyncHandler(async (req, res) => {
   const currentFilter = { student: req.user._id, academicSession: env.CURRENT_ACADEMIC_SESSION };
   if (req.user.hostel) currentFilter.hostel = req.user.hostel._id;
@@ -50,4 +81,4 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
   } });
 });
 
-module.exports = { getStudentDashboard, getAdminDashboard };
+module.exports = { getPublicDashboard, getStudentDashboard, getAdminDashboard };

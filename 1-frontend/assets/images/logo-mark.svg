@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">HostelAssess</title>
+  <desc id="desc">A hostel building with a check mark</desc>
+  <rect width="64" height="64" rx="17" fill="#0f7f75"/>
+  <path d="M15 30 32 17l17 13v19H15V30Z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M25 49V36h14v13" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+  <path d="m37 29 4 4 8-9" fill="none" stroke="#bff7e9" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

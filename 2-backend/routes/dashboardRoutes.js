@@ -1,8 +1,9 @@
 const router = require('express').Router();
-const { getStudentDashboard, getAdminDashboard } = require('../controllers/dashboardController');
+const { getPublicDashboard, getStudentDashboard, getAdminDashboard } = require('../controllers/dashboardController');
 const { protect } = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/adminMiddleware');
 
+router.get('/public', getPublicDashboard);
 router.get('/student', protect, getStudentDashboard);
 router.get('/admin', protect, requireAdmin, getAdminDashboard);
 

@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hostel Assessment System</title>
+    <link rel="icon" href="assets/images/logo-mark.svg" type="image/svg+xml">
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <header class="navbar">
         <div class="logo">
-            <div class="logo-icon">H</div>
+            <div class="logo-icon"><img src="assets/images/logo-mark.svg" alt=""></div>
             <span>Hostel<span class="logo-highlight">Assess</span></span>
         </div>
         <nav>
@@ -32,20 +33,20 @@
                     <a href="register.html" class="btn btn-outline">Create Account</a>
                 </div>
             </div>
-            <div class="hero-card">
+            <div class="hero-card" data-public-summary aria-live="polite">
                 <div class="card-header">
                     <span>HOSTEL SERVICE SCORE</span>
                     <span class="status-dot"></span>
                 </div>
                 <div class="score-circle">
-                    <strong>4.2</strong>
+                    <strong data-public-rating>—</strong>
                     <small>/ 5</small>
                 </div>
-                <p class="score-text">Average student rating</p>
+                <p class="score-text" data-public-rating-label>Loading current-session ratings...</p>
                 <div class="mini-rating">
-                    <div><span>Water</span><strong>4.1</strong></div>
-                    <div><span>Electricity</span><strong>3.8</strong></div>
-                    <div><span>Security</span><strong>4.5</strong></div>
+                    <div><span>Water</span><strong data-public-water>—</strong></div>
+                    <div><span>Electricity</span><strong data-public-electricity>—</strong></div>
+                    <div><span>Security</span><strong data-public-security>—</strong></div>
                 </div>
             </div>
         </section>
@@ -117,5 +118,8 @@
     </footer>
 
     <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/script.js"></script>
 </body>
 </html>

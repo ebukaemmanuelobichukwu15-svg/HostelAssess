@@ -66,12 +66,19 @@ textarea {
     width: 38px;
     height: 38px;
     border-radius: 10px;
-    background: var(--primary);
+    background: transparent url("../images/logo-mark.svg") center / contain no-repeat;
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
+    font-size: 0;
+}
+
+.logo-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .logo-highlight {
