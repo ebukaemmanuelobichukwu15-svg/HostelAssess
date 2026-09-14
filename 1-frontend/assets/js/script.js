@@ -64,6 +64,40 @@
     logoutDialog.querySelector('[data-cancel-logout]').focus();
   }));
 
+  function confirmAction({ eyebrow, title, message, confirmLabel, danger = false }) {
+    return new Promise((resolve) => {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'logout-dialog';
+      dialog.setAttribute('aria-labelledby', 'confirmation-dialog-title');
+      dialog.innerHTML = `
+        <div class="logout-dialog-icon" aria-hidden="true">!</div>
+        <div class="logout-dialog-copy">
+          <span class="form-label">${escapeHtml(eyebrow)}</span>
+          <h2 id="confirmation-dialog-title">${escapeHtml(title)}</h2>
+          <p>${escapeHtml(message)}</p>
+        </div>
+        <div class="logout-dialog-actions">
+          <button type="button" class="btn btn-outline" data-confirm-cancel>Go back</button>
+          <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-confirm-accept>${escapeHtml(confirmLabel)}</button>
+        </div>`;
+      document.body.appendChild(dialog);
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        dialog.close();
+        dialog.remove();
+        resolve(value);
+      };
+      dialog.querySelector('[data-confirm-cancel]').addEventListener('click', () => finish(false));
+      dialog.querySelector('[data-confirm-accept]').addEventListener('click', () => finish(true));
+      dialog.addEventListener('cancel', (event) => { event.preventDefault(); finish(false); });
+      dialog.addEventListener('click', (event) => { if (event.target === dialog) finish(false); });
+      dialog.showModal();
+      dialog.querySelector('[data-confirm-cancel]').focus();
+    });
+  }
+
   async function initLanding() {
     const card = document.querySelector('[data-public-summary]');
     if (!card) return;
@@ -223,8 +257,23 @@
           : '<p class="field-note">No session change is currently scheduled.</p>';
         main.insertAdjacentHTML('afterbegin', `<section class="dashboard-card session-settings"><div class="card-heading"><div><span>ACADEMIC CALENDAR</span><h3>Academic session</h3></div><strong class="session-current">Current: ${escapeHtml(sessionSettings.currentSession)}</strong></div><p>Schedule the next session once the school confirms its official starting date. It will activate automatically.</p><form id="sessionScheduleForm" class="session-form"><div><label for="nextAcademicSession">Next session</label><input id="nextAcademicSession" name="session" value="${nextSession}" pattern="\\d{4}/\\d{4}" required></div><div><label for="sessionStartsAt">Starts on</label><input id="sessionStartsAt" name="startsAt" type="datetime-local" required></div><button class="btn btn-primary">Schedule session</button></form>${scheduled}</section>`);
         const sessionForm = main.querySelector('#sessionScheduleForm');
-        sessionForm.addEventListener('submit', async e => { e.preventDefault(); const button = sessionForm.querySelector('button'); if (!confirm(`Schedule ${sessionForm.session.value} as the next academic session? Students will be able to submit new assessments when it activates.`)) return; setLoading(button, true, 'Scheduling...'); try { await API.request('/admins/academic-session', { method: 'PUT', body: JSON.stringify({ session: sessionForm.session.value.trim(), startsAt: new Date(sessionForm.startsAt.value).toISOString() }) }); toast('Academic session scheduled.', 'success'); await load(); } catch (error) { toast(error.message, 'error'); } finally { setLoading(button, false); } });
-        main.querySelector('[data-cancel-session]')?.addEventListener('click', async e => { const button = e.currentTarget; if (!confirm('Cancel the scheduled academic session change?')) return; button.disabled = true; try { await API.request('/admins/academic-session', { method: 'DELETE' }); toast('Scheduled session cancelled.', 'success'); await load(); } catch (error) { toast(error.message, 'error'); button.disabled = false; } });
+        sessionForm.addEventListener('submit', async e => {
+          e.preventDefault();
+          const button = sessionForm.querySelector('button');
+          const approved = await confirmAction({ eyebrow: 'CONFIRM SESSION', title: `Schedule ${sessionForm.session.value}?`, message: 'Students will be able to submit new assessments when this session activates.', confirmLabel: 'Schedule session' });
+          if (!approved) return;
+          setLoading(button, true, 'Scheduling...');
+          try { await API.request('/admins/academic-session', { method: 'PUT', body: JSON.stringify({ session: sessionForm.session.value.trim(), startsAt: new Date(sessionForm.startsAt.value).toISOString() }) }); toast('Academic session scheduled.', 'success'); await load(); }
+          catch (error) { toast(error.message, 'error'); } finally { setLoading(button, false); }
+        });
+        main.querySelector('[data-cancel-session]')?.addEventListener('click', async e => {
+          const button = e.currentTarget;
+          const approved = await confirmAction({ eyebrow: 'CANCEL SCHEDULE', title: 'Cancel the scheduled session?', message: 'The current academic session will remain active until another change is scheduled.', confirmLabel: 'Cancel schedule', danger: true });
+          if (!approved) return;
+          button.disabled = true;
+          try { await API.request('/admins/academic-session', { method: 'DELETE' }); toast('Scheduled session cancelled.', 'success'); await load(); }
+          catch (error) { toast(error.message, 'error'); button.disabled = false; }
+        });
         const form = main.querySelector('#adminInviteForm'); form.addEventListener('submit', async e => { e.preventDefault(); const button = form.querySelector('button'); setLoading(button, true, 'Creating...'); const body = { firstName: form.firstName.value, surname: form.surname.value, email: form.email.value, managedHostels: [...form.managedHostels.selectedOptions].map(o => o.value) }; try { const data = await API.request('/admins/invites', { method: 'POST', body: JSON.stringify(body) }); const token = new URL(data.inviteUrl).searchParams.get('token'); const inviteUrl = `${window.location.origin}/accept-admin-invite?token=${encodeURIComponent(token)}`; const result = main.querySelector('[data-invite-result]'); result.hidden = false; result.innerHTML = `<strong>Invitation ready to send</strong><input readonly value="${escapeHtml(inviteUrl)}"><button type="button" class="btn btn-outline" data-copy-invite>Copy link</button>`; result.querySelector('button').onclick = async () => { await navigator.clipboard.writeText(inviteUrl); toast('Invitation link copied.', 'success'); }; toast('Invitation created. Copy the link and send it to the administrator.', 'success'); } catch (error) { toast(error.message, 'error'); } finally { setLoading(button, false); } });
         main.querySelectorAll('[data-save-scope]').forEach(button => button.onclick = async () => { const select = main.querySelector(`[data-admin-scope="${button.dataset.saveScope}"]`); button.disabled = true; try { await API.request(`/admins/${button.dataset.saveScope}/scope`, { method: 'PATCH', body: JSON.stringify({ managedHostels: [...select.selectedOptions].map(o => o.value) }) }); toast('Administrator assignment updated.', 'success'); } catch (e) { toast(e.message, 'error'); } finally { button.disabled = false; } });
         main.querySelectorAll('[data-admin-status]').forEach(button => button.onclick = async () => { button.disabled = true; try { await API.request(`/admins/${button.dataset.adminStatus}/status`, { method: 'PATCH', body: JSON.stringify({ isActive: button.dataset.active !== 'true' }) }); toast(button.dataset.active === 'true' ? 'Administrator access revoked.' : 'Administrator access restored.', 'success'); await load(); } catch (e) { toast(e.message, 'error'); button.disabled = false; } });
