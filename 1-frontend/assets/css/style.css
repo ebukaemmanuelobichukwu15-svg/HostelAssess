@@ -85,6 +85,72 @@ textarea {
     color: var(--primary);
 }
 
+.session-settings {
+    margin-bottom: 22px;
+}
+
+.session-settings > p {
+    color: var(--muted);
+    margin-bottom: 18px;
+}
+
+.session-current {
+    color: var(--primary-dark);
+    white-space: nowrap;
+}
+
+.session-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr) auto;
+    gap: 14px;
+    align-items: end;
+}
+
+.session-form label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.session-form input {
+    width: 100%;
+}
+
+.session-scheduled {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px solid #99f6e4;
+    border-radius: 12px;
+    background: #f0fdfa;
+}
+
+.session-scheduled span {
+    color: var(--text);
+}
+
+.session-scheduled button {
+    margin-left: auto;
+}
+
+@media (max-width: 760px) {
+    .session-form {
+        grid-template-columns: 1fr;
+    }
+
+    .session-scheduled {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .session-scheduled button {
+        margin-left: 0;
+    }
+}
+
 .navbar nav {
     display: flex;
     align-items: center;

@@ -1,10 +1,10 @@
 const Assessment = require('../models/Assessment');
-const env = require('../config/env');
 const ApiError = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
 const { calculateOverallRating } = require('../utils/assessment');
 const { applyHostelScope } = require('../utils/adminScope');
+const { getCurrentAcademicSession } = require('../utils/academicSession');
 
 const populateAssessment = (query) => query.populate('student', 'firstName surname matricNo').populate('hostel', 'name category campus');
 
@@ -14,12 +14,13 @@ const createAssessment = asyncHandler(async (req, res) => {
 
   const ratings = req.validated.body;
   const overallRating = calculateOverallRating(ratings);
+  const academicSession = await getCurrentAcademicSession();
   try {
     const assessment = await Assessment.create({
       ...ratings,
       student: req.user._id,
       hostel: req.user.hostel._id,
-      academicSession: env.CURRENT_ACADEMIC_SESSION,
+      academicSession,
       overallRating
     });
     await assessment.populate('student', 'firstName surname matricNo');
@@ -27,7 +28,7 @@ const createAssessment = asyncHandler(async (req, res) => {
     return sendSuccess(res, { statusCode: 201, message: 'Assessment submitted successfully.', data: { assessment } });
   } catch (error) {
     if (error.code === 11000) {
-      const existing = await populateAssessment(Assessment.findOne({ student: req.user._id, hostel: req.user.hostel._id, academicSession: env.CURRENT_ACADEMIC_SESSION }));
+      const existing = await populateAssessment(Assessment.findOne({ student: req.user._id, hostel: req.user.hostel._id, academicSession }));
       throw new ApiError(409, 'You have already submitted an assessment for this hostel for the current academic session.', 'ASSESSMENT_ALREADY_SUBMITTED', { assessment: existing });
     }
     throw error;
@@ -35,8 +36,9 @@ const createAssessment = asyncHandler(async (req, res) => {
 });
 
 const getCurrentAssessment = asyncHandler(async (req, res) => {
-  const assessment = req.user.hostel ? await populateAssessment(Assessment.findOne({ student: req.user._id, hostel: req.user.hostel._id, academicSession: env.CURRENT_ACADEMIC_SESSION })) : null;
-  return sendSuccess(res, { message: 'Current assessment state retrieved.', data: { academicSession: env.CURRENT_ACADEMIC_SESSION, hostel: req.user.hostel, canSubmit: Boolean(req.user.hostel && !assessment), assessment } });
+  const academicSession = await getCurrentAcademicSession();
+  const assessment = req.user.hostel ? await populateAssessment(Assessment.findOne({ student: req.user._id, hostel: req.user.hostel._id, academicSession })) : null;
+  return sendSuccess(res, { message: 'Current assessment state retrieved.', data: { academicSession, hostel: req.user.hostel, canSubmit: Boolean(req.user.hostel && !assessment), assessment } });
 });
 
 const getMyAssessments = asyncHandler(async (req, res) => {

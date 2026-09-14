@@ -1,14 +1,15 @@
 const Assessment = require('../models/Assessment');
 const Complaint = require('../models/Complaint');
 const User = require('../models/User');
-const env = require('../config/env');
 const asyncHandler = require('../utils/asyncHandler');
 const { sendSuccess } = require('../utils/response');
 const { applyHostelScope, managedHostelIds } = require('../utils/adminScope');
+const { getCurrentAcademicSession } = require('../utils/academicSession');
 
 const getPublicDashboard = asyncHandler(async (_req, res) => {
+  const academicSession = await getCurrentAcademicSession();
   const [summary] = await Assessment.aggregate([
-    { $match: { academicSession: env.CURRENT_ACADEMIC_SESSION } },
+    { $match: { academicSession } },
     {
       $group: {
         _id: null,
@@ -25,7 +26,7 @@ const getPublicDashboard = asyncHandler(async (_req, res) => {
   return sendSuccess(res, {
     message: 'Public assessment summary retrieved.',
     data: {
-      academicSession: env.CURRENT_ACADEMIC_SESSION,
+      academicSession,
       assessmentCount: summary?.assessmentCount || 0,
       ratings: {
         overall: rating(summary?.overall),
@@ -38,7 +39,8 @@ const getPublicDashboard = asyncHandler(async (_req, res) => {
 });
 
 const getStudentDashboard = asyncHandler(async (req, res) => {
-  const currentFilter = { student: req.user._id, academicSession: env.CURRENT_ACADEMIC_SESSION };
+  const academicSession = await getCurrentAcademicSession();
+  const currentFilter = { student: req.user._id, academicSession };
   if (req.user.hostel) currentFilter.hostel = req.user.hostel._id;
   const [currentAssessment, assessmentCount, complaintCount, resolvedCount, recentComplaints] = await Promise.all([
     Assessment.findOne(currentFilter).populate('hostel', 'name category campus'),
@@ -49,7 +51,7 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
   ]);
   return sendSuccess(res, { message: 'Student dashboard retrieved.', data: {
     student: req.user,
-    academicSession: env.CURRENT_ACADEMIC_SESSION,
+    academicSession,
     canSubmitAssessment: Boolean(req.user.hostel && !currentAssessment),
     stats: { assessmentCount, complaintCount, resolvedCount },
     currentAssessment,
@@ -58,7 +60,8 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
 });
 
 const getAdminDashboard = asyncHandler(async (req, res) => {
-  const assessmentFilter = applyHostelScope(req.user, { academicSession: env.CURRENT_ACADEMIC_SESSION }, req.query.hostel);
+  const academicSession = await getCurrentAcademicSession();
+  const assessmentFilter = applyHostelScope(req.user, { academicSession }, req.query.hostel);
   const complaintFilter = applyHostelScope(req.user, {}, req.query.hostel);
   const managed = managedHostelIds(req.user);
   const studentFilter = { role: 'student' };
@@ -75,7 +78,7 @@ const getAdminDashboard = asyncHandler(async (req, res) => {
   const raw = averages[0] || {};
   const ratings = Object.fromEntries(['water', 'electricity', 'sanitation', 'security', 'maintenance'].map((key) => [key, Number((raw[key] || 0).toFixed(1))]));
   return sendSuccess(res, { message: 'Admin dashboard retrieved.', data: {
-    academicSession: env.CURRENT_ACADEMIC_SESSION,
+    academicSession,
     scope: managed.length ? req.user.managedHostels : 'all',
     stats: { studentCount, assessmentCount, complaintCount, pendingCount }, ratings, recentAssessments, recentComplaints
   } });
